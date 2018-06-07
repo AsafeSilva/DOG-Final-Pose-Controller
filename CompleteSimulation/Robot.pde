@@ -1,4 +1,3 @@
-
 class Robot {
 
   public final float D = 0.11;      // Distância entre rodas  [m]
@@ -21,12 +20,12 @@ class Robot {
 
     initThread();
 
-    println();
-    println("Robot vars:");
-    println("V_MAX = " + V_MAX);
-    println("W_MAX = " + W_MAX);
-    println("V_WHEEL_MAX = " + V_WHEEL_MAX);
-    println("W_WHEEL_MAX = " + W_WHEEL_MAX);
+    //println();
+    //println("Robot vars:");
+    //println("V_MAX = " + V_MAX);
+    //println("W_MAX = " + W_MAX);
+    //println("V_WHEEL_MAX = " + V_WHEEL_MAX);
+    //println("W_WHEEL_MAX = " + W_WHEEL_MAX);
   }
 
   public Robot(float x, float y, float direction) {

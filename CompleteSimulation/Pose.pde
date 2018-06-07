@@ -1,4 +1,3 @@
-
 class Pose {
   private PVector poseVector;
   private float direction;
