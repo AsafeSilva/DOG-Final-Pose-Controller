@@ -6,6 +6,11 @@ LegoNXT lego;
 
 Capture cam;
 
+float[] error;
+float rho, alpha, theta;
+float phi, betha;
+boolean isOnTarget = false;
+
 PImage map;
 
 PRM prm;
@@ -14,9 +19,11 @@ Node start, goal;
 Robot robot;
 Pose currentPose;
 Pose target;
+Pose targetTemp;
 
 float vmax = 0.1;
 float wmax = 3.63;
+float SAFE_DISTANCE = 40;
 
 List<Node> path;
 int currentNode = 1;
@@ -41,9 +48,10 @@ void setup() {
   map = loadImage(MAP_NAME);
 
   println("Inicializando variáveis");
-  robot = new Robot();
+  robot = new Robot(map);
   currentPose = new Pose();
   target = new Pose();
+  targetTemp = new Pose();
 
   // ==== Probabilistic Roadmap
   prm = new PRM(map);
@@ -100,13 +108,89 @@ void draw() {
     ellipse(path.get(currentNode).getX(), path.get(currentNode).getY(), WAYPOINT_DISTANCE, WAYPOINT_DISTANCE);
   }
 
-
   // ===== Final pose controller
-  float[] error = robot.getError(target);
-  float rho = error[0];
-  float alpha = error[1];
+  error = robot.getError(target);
+  rho = error[0];
+  alpha = error[1];
+  theta = error[2];
+  
+  isOnTarget = rho < 15.0 ? true : false;
+  
+  float shortestSensor = SAFE_DISTANCE;
+  int shortestSensorID = -1;
+  float shortestDistance;
 
-  if (rho >= 15.0) {
+  // Realiza a leitura dos 16 sensores
+  for (int i = 0; i < 16; i++)  robot.getSonar(i).read(currentPose, robot.occGrid);
+
+  // Procura o sensor frontal que leu a menor distância
+  for (int i = 0; i < 8; i++) {
+    float distance = robot.getSonar(i).getDistance();
+    //if ( (distance > 30) && (distance < 70) ) {
+    if (distance < shortestSensor) {
+      shortestSensor = distance;
+      shortestSensorID = i;
+    }
+    //}
+  }
+
+  // Realiza uma média entre o sensor com menor distância e seus vizinhos
+  if (shortestSensor < SAFE_DISTANCE) {
+    int centralSensorID = shortestSensorID;
+    int rightSensorID = centralSensorID + 1;
+    int leftSensorID = centralSensorID == 0 ? 15 : centralSensorID - 1;
+
+    float centralDistance = robot.getSonar(centralSensorID).getDistance();
+    float rightDistance = robot.getSonar(rightSensorID).getDistance();
+    float leftDistance = robot.getSonar(leftSensorID).getDistance();
+
+    float centralAngle = robot.getSonar(centralSensorID).getDirection();
+    float rightAngle = robot.getSonar(rightSensorID).getDirection();
+    float leftAngle = robot.getSonar(leftSensorID).getDirection();
+
+    float difRightCentral = abs(centralDistance - rightDistance);
+    float difLeftCentral = abs(centralDistance - leftDistance);
+    float difRightLeft = abs(leftDistance - rightDistance);
+
+    if (difLeftCentral < difRightCentral) {
+      shortestDistance = difLeftCentral;
+      betha = (leftAngle + centralAngle)/2;
+    } else {
+      shortestDistance = difRightCentral;
+      betha = (rightAngle + centralAngle)/2;
+    }
+
+    if (difRightLeft < shortestDistance) {
+      shortestDistance = difRightLeft;
+      betha = (rightAngle + leftAngle)/2;
+    }
+
+    // Calcula o ângulo de rotação para o alvo virtual
+    int reverseSign = betha > 0 ? -1 : 1;
+    phi = ((HALF_PI - abs(betha)) * reverseSign) - alpha;
+  } else {
+    phi = 0;
+    betha = 0;
+  }
+
+  // Calcula um ponto próximo ao robô na direção do alvo
+  float xNear = currentPose.getX() + 100 * cos(theta);
+  float yNear = currentPose.getY() + 100 * sin(theta);
+
+  // Calcula o alvo virtual através do ângulo de rotação 'phi'
+  float xTemp = (xNear - currentPose.getX()) * cos(phi) - (yNear - currentPose.getY()) * sin(phi);
+  float yTemp = (xNear - currentPose.getX()) * sin(phi) + (yNear - currentPose.getY()) * cos(phi);
+  
+  targetTemp.setX(xTemp + currentPose.getX());
+  targetTemp.setY(yTemp + currentPose.getY());
+
+  // Calcula novo erro em relação ao alvo virtual
+  error = robot.getError(targetTemp);
+  rho = error[0];
+  alpha = error[1];
+
+
+  if (!isOnTarget){
     float Kw = (abs(wmax) - 0.5 * vmax) / PI;
     Kw = abs(Kw);
 
@@ -129,6 +213,16 @@ void draw() {
   text("Power: (" + robot.powerD + ", " + robot.powerE + ")", 10, 20);
   text("Pose: (" + (int)currentPose.getX() + ", " + (int)currentPose.getY() + ", " + (int)degrees(currentPose.getDirection()) + ")", 10, 35);
   text("Error: (" + (int)rho + ", " + (int)degrees(alpha) + ")", 10, 50);
+
+
+  stroke(0, 0, 255);
+  for (int i = 0; i < 16; i++) {
+    Sonar sonar = robot.getSonar(i);
+    line(sonar.getStartPointX(), height - sonar.getStartPointY(), sonar.getObstacleX(), height - sonar.getObstacleY());
+  }
+  
+  stroke(255, 0, 0);
+  line(currentPose.getX(), height - currentPose.getY(), targetTemp.getX(), height - targetTemp.getY());
 }
 
 
@@ -137,7 +231,7 @@ void mousePressed() {
     getRobotColors();
   } else if (mouseButton == LEFT) {
     goal.setPosition(mouseX, mouseY);
-    
+
     prm.path(start, goal);
     path = prm.getPath();
     Collections.reverse(path);

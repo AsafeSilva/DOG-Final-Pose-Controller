@@ -1,3 +1,4 @@
+
 class Robot {
 
   public final float D = 0.11;      // Distância entre rodas  [m]
@@ -9,28 +10,53 @@ class Robot {
   public final float V_WHEEL_MAX = V_MAX + D * W_MAX / 2;   // Velocidade linear máxima da roda  [m/s]
   public final float W_WHEEL_MAX = V_WHEEL_MAX / R;         // Velocidade angular máxima da roda [rad/s]
 
+  private Sonar[] sonars;
+
+  private PImage map;
+  private boolean[][] occGrid;
+
   private Pose pose;
 
   private int powerD, powerE;
 
-  public Robot() {
+  public Robot(PImage map) {
     pose = new Pose();
+
+    sonars = new Sonar[16];
+
+    int[] degrees = {90, 50, 30, 10, -10, -30, -50, -90, -90, -130, -150, -170, 170, 150, 130, 90};
+
+    int raio = 40;
+
+    for (int i = 0; i < degrees.length; i++) {
+      sonars[i] = new Sonar(raio*cos(radians(degrees[i])), raio*sin(radians(degrees[i])), radians(degrees[i]));
+    }
+
+    this.map = map;
+    this.map.loadPixels();
+
+    occGrid = new boolean[map.width][map.height];
+    for (int x = 0; x < map.width; x++) {
+      for (int y = 0; y < map.height; y++) {
+        occGrid[x][y] = (map.pixels[x + (map.height-1-y) * map.width] & 0xFF) == 0;
+      }
+    }
 
     powerD = powerE = 0;
 
     initThread();
 
-    //println();
-    //println("Robot vars:");
-    //println("V_MAX = " + V_MAX);
-    //println("W_MAX = " + W_MAX);
-    //println("V_WHEEL_MAX = " + V_WHEEL_MAX);
-    //println("W_WHEEL_MAX = " + W_WHEEL_MAX);
+    println();
+    println("Robot vars:");
+    println("V_MAX = " + V_MAX);
+    println("W_MAX = " + W_MAX);
+    println("V_WHEEL_MAX = " + V_WHEEL_MAX);
+    println("W_WHEEL_MAX = " + W_WHEEL_MAX);
   }
 
-  public Robot(float x, float y, float direction) {
-    pose = new Pose(x, y, direction);
-  }
+  /*public Robot(float x, float y, float direction) {
+   pose = new Pose(x, y, direction);
+   }*/
 
   private void initThread() {
     Thread thread = new Thread() {
@@ -76,8 +102,8 @@ class Robot {
   public void stop() {
     powerD = powerE = 0;
   }
-  
-  public void setPose(Pose newPose){
+
+  public void setPose(Pose newPose) {
     this.pose.setPose(newPose);
   }
 
@@ -104,5 +130,9 @@ class Robot {
     float[] error = {rho, alpha, theta};
 
     return error;
+  }
+  
+  public Sonar getSonar(int id) {
+    return this.sonars[id];
   }
 }
