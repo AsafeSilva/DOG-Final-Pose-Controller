@@ -1,4 +1,4 @@
-final float THRESHOLD = 30;       // VARIAÇÃO MÁXIMA DE COR A SER CONSIDERADA
+final float THRESHOLD = 40;       // VARIAÇÃO MÁXIMA DE COR A SER CONSIDERADA
 final int DISTANCIA_MAXIMA = 50;  // DEFINIR DISTÂNCIA MÁXIMA PONTO MÉDIO ATÉ PONTOS FLUTUANTES
 
 color backColor;  // COR OBJETIVO 1
@@ -21,7 +21,11 @@ void capturePose(Pose pose) {
   //LEITURA DE TODOS OS PIXELS DA IMAGEM
   for (int x = 0; x < cam.width; x++) {
     for (int y = 0; y < cam.height; y++) {
-      int pos = x + (cam.height - y -1) * cam.width;
+      int pos = x + y * cam.width;
+
+      if (robot.occGrid[x][y]) {
+        continue;
+      }
 
       color cor = cam.pixels[pos];
 

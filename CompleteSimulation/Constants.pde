@@ -1,3 +1,4 @@
+
 public final int CAMERA_WIDTH = 640;
 public final int CAMERA_HEIGHT = 480;
 
@@ -6,4 +7,4 @@ public final String EXTERNAL_CAM = "USB2.0 Camera";
 
 public final String BT_LEGO = "COM15";
 
-public final String MAP_NAME = "Map2.bmp";
+public final String MAP_NAME = "Map4.bmp";

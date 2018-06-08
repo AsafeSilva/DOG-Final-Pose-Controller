@@ -38,7 +38,7 @@ class Robot {
     occGrid = new boolean[map.width][map.height];
     for (int x = 0; x < map.width; x++) {
       for (int y = 0; y < map.height; y++) {
-        occGrid[x][y] = (map.pixels[x + (map.height-1-y) * map.width] & 0xFF) == 0;
+        occGrid[x][y] = (map.pixels[x + y * map.width] & 0xFF) == 0;
       }
     }
 
@@ -84,8 +84,8 @@ class Robot {
     w = constrain(w, -W_MAX, W_MAX);
 
     // Cálculo da velocidade linear de cada roda
-    float vD = v + D * w / 2;
-    float vE = v - D * w / 2;
+    float vD = v - D * w / 2;
+    float vE = v + D * w / 2;
 
     // Conversão da velocidade linear da roda para angular [V = W * raio] 
     float wD = vD / R;
